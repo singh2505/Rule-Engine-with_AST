@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Rule Engine - Teresha</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap");
+      body {
+        font-family: "Poppins", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #121212;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 700px;
+        background-color: #282c34;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.4);
+        text-align: left;
+      }
+
+      h1 {
+        font-family: "Roboto Mono", monospace;
+        font-size: 40px;
+        color: #4caf50;
+        margin-bottom: 20px;
+      }
+
+      h2,
+      h3 {
+        font-weight: 600;
+        font-size: 18px;
+        color: #cddc39;
+        margin-bottom: 12px;
+      }
+
+      form {
+        margin-bottom: 20px;
+      }
+
+      form label {
+        font-size: 16px;
+        color: #ffffff;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      form input[type="text"],
+      form textarea,
+      form select {
+        width: 100%;
+        height: 35px;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        background-color: #f5f5f5;
+        margin-bottom: 16px;
+      }
+
+      form textarea {
+        height: 100px;
+        resize: vertical;
+      }
+
+      form input:focus,
+      form textarea:focus,
+      form select:focus {
+        outline: 2px solid #76ff03;
+      }
+
+      form button {
+        width: 100%;
+        max-width: 150px;
+        padding: 10px;
+        background-color: #3f51b5;
+        color: #ffffff;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      form button:hover {
+        background-color: #303f9f;
+      }
+
+      pre {
+        background-color: #1e1e1e;
+        padding: 10px;
+        border-radius: 6px;
+        color: #80deea;
+        font-family: "Roboto Mono", monospace;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .rule-container {
+        margin-bottom: 12px;
+      }
+
+      #add-rule {
+        background-color: #009688;
+        margin-top: 10px;
+      }
+
+      #combined-rules-tree {
+        margin-top: 20px;
+        background-color: #424242;
+        padding: 10px;
+        border-radius: 6px;
+        color: #cddc39;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 15px;
+        }
+
+        form button {
+          padding: 8px;
+          font-size: 14px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        form input[type="text"],
+        form textarea,
+        form select {
+          padding: 6px;
+        }
+
+        form button {
+          padding: 6px;
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Rule Engine</h1>
+
+      <h2>Create a New Rule</h2>
+      <form id="create-rule-form">
+        <label for="ruleName">Rule Name:</label>
+        <input type="text" id="ruleName" name="ruleName" placeholder="Enter rule name" required />
+
+        <label for="ruleString">Rule Expression:</label>
+        <input type="text" id="ruleString" name="ruleString" placeholder="Enter rule logic" required />
+        <button type="submit">Create</button>
+      </form>
+      <pre id="create-rule-result"></pre>
+
+      <h2>Combine Rules</h2>
+      <form id="combine-rules-form">
+        <h3>Add Rules for Combination</h3>
+        <div id="rules-inputs" class="rule-container">
+          <label for="combine-rule1">Rule 1:</label>
+          <input type="text" id="combine-rule1" name="rule1" placeholder="Enter first rule" required />
+          <label for="operator1">Choose Operator:</label>
+          <select id="operator1" name="operator1">
+            <option value="AND">AND</option>
+            <option value="OR">OR</option>
+          </select>
+        </div>
+        <button type="button" id="add-rule">Add Rule</button>
+        <button type="submit">Combine</button>
+      </form>
+      <pre id="combine-rules-result"></pre>
+
+      <h2>Evaluate Rule</h2>
+      <form id="evaluate-rule-form">
+        <label for="evaluate-ast">Rule Name:</label>
+        <input type="text" id="evaluate-ast" name="ast" placeholder="Enter the rule name" required />
+
+        <label for="evaluate-data">Input Data (JSON):</label>
+        <textarea id="evaluate-data" name="data" placeholder="Enter JSON data for evaluation"></textarea>
+        <button type="submit">Evaluate</button>
+      </form>
+      <pre id="evaluate-rule-result"></pre>
+    </div>
+
+    <script>
+      function generateTreeHTML(node, prefix = '', isLeft = true, last = true) {
+        if (!node) return '';
+        let treeHTML = prefix + (last ? '└─ ' : '├─ ');
+        treeHTML += node.type === 'operator' ? node.operator : `${node.key} ${node.operator} ${node.value}`;
+        treeHTML += '\n';
+        prefix += last ? '   ' : '│  ';
+        const children = [];
+        if (node.left) children.push({ node: node.left, last: !node.right });
+        if (node.right) children.push({ node: node.right, last: true });
+        children.forEach(child => {
+          treeHTML += generateTreeHTML(child.node, prefix, true, child.last);
+        });
+        return treeHTML;
+      }
+
+      document.getElementById("create-rule-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const ruleName = document.getElementById("ruleName").value;
+        const ruleString = document.getElementById("ruleString").value;
+        // Example of rule processing
+        const ruleResult = `${ruleName}: ${ruleString}`;
+        document.getElementById("create-rule-result").textContent = ruleResult;
+      });
+
+      document.getElementById("combine-rules-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const combinedResult = "Combined rules will be displayed here.";
+        document.getElementById("combine-rules-result").textContent = combinedResult;
+      });
+
+      document.getElementById("evaluate-rule-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const result = "Evaluation result will appear here.";
+        document.getElementById("evaluate-rule-result").textContent = result;
+      });
+    </script>
+  </body>
+</html>
